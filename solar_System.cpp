@@ -1,61 +1,84 @@
-#include <iostream>
+#include <GLUT/glut.h>
 #include <cmath>
-#include <thread>
-#include <chrono>
 
-using namespace std;
+float angleMercury = 0.0f;
+float angleVenus = 0.0f;
+float angleEarth = 0.0f;
+float angleMars = 0.0f;
 
-const double PI = 3.141592653589793;
-const int SCREEN_WIDTH = 80;
-const int SCREEN_HEIGHT = 24;
-const double SUN_X = 40.0, SUN_Y = 12.0;
-const int NUM_PLANETS = 3;
-
-struct Planet {
-    string name;
-    double distance;
-    double speed;
-    char symbol;
-};
-
-Planet planets[NUM_PLANETS] = {
-    {"Mercury", 5.0, 4.0, 'M'},
-    {"Venus", 8.0, 2.5, 'V'},
-    {"Earth", 12.0, 2.0, 'E'}
-};
-
-void drawSolarSystem(int step) {
-    char screen[SCREEN_HEIGHT][SCREEN_WIDTH];
-    for (int i = 0; i < SCREEN_HEIGHT; ++i)
-        for (int j = 0; j < SCREEN_WIDTH; ++j)
-            screen[i][j] = ' ';
-    
-    screen[(int)SUN_Y][(int)SUN_X] = 'O'; // Sun
-    
-    for (int i = 0; i < NUM_PLANETS; ++i) {
-        double angle = step * planets[i].speed * PI / 180.0;
-        int x = (int)(SUN_X + planets[i].distance * cos(angle));
-        int y = (int)(SUN_Y + planets[i].distance * sin(angle));
-        
-        if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
-            screen[y][x] = planets[i].symbol;
+void drawCircle(float radius) {
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < 360; i++) {
+        float angle = i * 3.14159f / 180.0f;
+        glVertex2f(cos(angle) * radius, sin(angle) * radius);
     }
-    
-    for (int i = 0; i < SCREEN_HEIGHT; ++i) {
-        for (int j = 0; j < SCREEN_WIDTH; ++j)
-            cout << screen[i][j];
-        cout << endl;
-    }
+    glEnd();
 }
 
-int main() {
-    int step = 0;
-    while (true) {
-        system("clear");
-        cout << "Simple Solar System Simulation" << endl;
-        drawSolarSystem(step);
-        this_thread::sleep_for(chrono::milliseconds(500));
-        step++;
-    }
+void drawPlanet(float orbitRadius, float angle, float size, float r, float g, float b) {
+    float x = cos(angle) * orbitRadius;
+    float y = sin(angle) * orbitRadius;
+
+    glColor3f(r, g, b);
+    glPushMatrix();
+    glTranslatef(x, y, 0);
+    glutSolidSphere(size, 20, 20);
+    glPopMatrix();
+}
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Sun
+    glColor3f(1.0f, 0.7f, 0.0f);
+    glutSolidSphere(0.1, 30, 30);
+
+    // Orbits
+    glColor3f(1, 1, 1);
+    drawCircle(0.3f); // Mercury
+    drawCircle(0.5f); // Venus
+    drawCircle(0.7f); // Earth
+    drawCircle(0.9f); // Mars
+
+    // Planets
+    drawPlanet(0.3f, angleMercury, 0.02f, 0.5f, 0.5f, 0.5f);
+    drawPlanet(0.5f, angleVenus,   0.03f, 0.9f, 0.6f, 0.2f);
+    drawPlanet(0.7f, angleEarth,   0.035f, 0.2f, 0.5f, 1.0f);
+    drawPlanet(0.9f, angleMars,    0.03f, 1.0f, 0.2f, 0.1f);
+
+    glutSwapBuffers();
+}
+
+void update(int value) {
+    angleMercury += 0.05f;
+    angleVenus   += 0.03f;
+    angleEarth   += 0.02f;
+    angleMars    += 0.015f;
+
+    if (angleMercury > 360) angleMercury -= 360;
+    if (angleVenus > 360) angleVenus -= 360;
+    if (angleEarth > 360) angleEarth -= 360;
+    if (angleMars > 360) angleMars -= 360;
+
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0); // ~60 FPS
+}
+
+void init() {
+    glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
+    glMatrixMode(GL_PROJECTION);
+    gluOrtho2D(-1, 1, -1, 1);
+}
+
+int main(int argc, char** argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(800, 800);
+    glutCreateWindow("Solar System Simulation - OpenGL");
+
+    init();
+    glutDisplayFunc(display);
+    glutTimerFunc(0, update, 0);
+    glutMainLoop();
     return 0;
 }
